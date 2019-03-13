@@ -161,4 +161,5 @@ input[type="text"]:invalid
 }
 .card {
     display: inline-block;
+    text-align: left !important;
 }

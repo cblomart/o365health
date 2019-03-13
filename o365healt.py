@@ -104,37 +104,37 @@ def static(filepath):
 # csrf protection
 @hook('before_request')
 def csrf_protect():
-    if request.path.startswith("/static/") or request.path=="/favicon.ico":
+    if request.path.startswith("/static/") or request.path=="/favicon.ico" or request.path=="/":
         if request.method in  ['GET','HEAD']:
             return
         else:
             abort(403,text="unauthorized method")
-    # first attempt to renew
-    if token is None or token=="" or not tokenvalid():
-        authenticate_client_key()
-    # then fail
-    if token is None or token=="" or not tokenvalid():
-        abort(500,text="invalid oauth token")
-    if request.method != 'POST':
-        return
-    # check csrf only for POST
-    sess = request.environ['beaker.session']
-    req_token = request.forms.get('csrf_token')
-    # if no token is in session or it doesn't match the request one, abort
-    if 'csrf_token' not in sess or sess['csrf_token'] != req_token:
-        abort(403,text="invalid csrf token")
+    if request.path != "/config":
+        # first attempt to renew
+        if token is None or token=="" or not tokenvalid():
+            authenticate_client_key()
+        # then fail
+        if token is None or token=="" or not tokenvalid():
+            abort(500,text="invalid oauth token")
+    if request.method == 'POST':
+        # check csrf only for POST
+        sess = request.environ['beaker.session']
+        req_token = request.forms.get('csrf_token')
+        # if no token is in session or it doesn't match the request one, abort
+        if 'csrf_token' not in sess or sess['csrf_token'] != req_token:
+            abort(403,text="invalid csrf token")
 
 @get('/api/status')
 def getapistatus():
     statuses = getstatus()
     res = []
     for status in statuses:
-        print(status)
         item ={}
         item['Workload']=status['Workload']
         item['WorkloadDisplayName']=status['WorkloadDisplayName']
         item['Indidents']=len(status['IncidentIds'])
         item['StatusTime']=status['StatusTime']
+        item['Status']=status['Status']
         res.append(item)
     response.headers['Content-Type'] = 'application/json'
     return json.dumps(res)
@@ -152,9 +152,7 @@ def getindex():
     global cache
     if infos['tenant_id']=='' or infos['client_id']=='' or infos['client_secret']=='':
         redirect("/config")
-    # get office 365 status
-    statuses = getstatus()
-    return template('index.tpl',statuses=statuses)
+    return template('index.tpl')
 
 @get('/config')
 def getconfig():
